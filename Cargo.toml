@@ -1,0 +1,19 @@
+[package]
+name = "lgravity"
+version = "0.1.0"
+edition = "2024"
+authors = ["0xDimay <HexDimay@yandex.ru>"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+anyhow = "1.0"
+winit = "0.30.0"
+env_logger = "0.10"
+log = "0.4"
+wgpu = "29.0.3"
+pollster = "0.3"
+pollster-macro = "0.4.0"
+bytemuck = { version = "1.24", features = [ "derive" ] }
+nalgebra = "0.34.2"
+rand = "0.8.0"
