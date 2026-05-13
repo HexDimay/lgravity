@@ -2,13 +2,15 @@ use std::sync::Arc;
 
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, window::Window};
 
+use crate::render::RenderWorld;
+
 pub struct State {
-    surface: wgpu::Surface<'static>,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    is_surface_configured: bool,
-    window: Arc<Window>,
+    pub(crate) surface: wgpu::Surface<'static>,
+    pub(crate) device: wgpu::Device,
+    pub(crate) queue: wgpu::Queue,
+    pub(crate) config: wgpu::SurfaceConfiguration,
+    pub(crate) is_surface_configured: bool,
+    pub(crate) window: Arc<Window>,
 }
 
 impl State {
@@ -86,7 +88,7 @@ impl State {
 
     pub fn update(&mut self) {}
 
-    pub fn render(&mut self) -> anyhow::Result<()> {
+    pub fn render(&mut self, world_render_data: &RenderWorld) -> anyhow::Result<()> {
         self.window.request_redraw();
 
         if !self.is_surface_configured {
@@ -123,7 +125,7 @@ impl State {
             });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -144,6 +146,8 @@ impl State {
                 timestamp_writes: None,
                 multiview_mask: None,
             });
+
+            // render_pass.set_pipeline(&world_render_data.render_pipline);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();

@@ -4,19 +4,25 @@ use winit::{
     application::ApplicationHandler,
     event::{KeyEvent, WindowEvent},
     event_loop::ActiveEventLoop,
-    keyboard::{KeyCode, PhysicalKey},
+    keyboard::PhysicalKey,
     window::Window,
 };
 
-use crate::state::State;
+use crate::{components::world::World, render::RenderWorld, state::State};
 
 pub struct App {
-    state: Option<State>,
+    world: World,
+    world_render_data: Option<RenderWorld>,
+    pub state: Option<State>,
 }
 
 impl App {
     pub fn new() -> Self {
-        Self { state: None }
+        Self {
+            world: World::new(10, 10),
+            world_render_data: None,
+            state: None,
+        }
     }
 }
 
@@ -25,6 +31,11 @@ impl ApplicationHandler<State> for App {
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
+        self.world_render_data = Some(RenderWorld::new(
+            &self.state.as_ref().unwrap().config,
+            &self.state.as_ref().unwrap().device,
+            self.world.width() * self.world.height(),
+        ).unwrap());
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: State) {
@@ -47,7 +58,7 @@ impl ApplicationHandler<State> for App {
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
                 state.update();
-                match state.render() {
+                match state.render(self.world_render_data.as_ref().unwrap()) {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("{e}");

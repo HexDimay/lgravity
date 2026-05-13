@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bytemuck::{Pod, Zeroable};
 
 use crate::components::world::World;
@@ -19,14 +21,91 @@ impl Vertex {
 #[derive(Debug)]
 pub struct RenderWorld {
     vertex_data: Vec<Vertex>,
+    pub render_pipline: wgpu::RenderPipeline,
 }
 
 impl RenderWorld {
     /// `count_data` это есть длина нашей сетки `n*m`.
-    pub fn new(count_data: usize) -> Self {
-        Self {
+    pub fn new(
+        config: &wgpu::SurfaceConfiguration,
+        device: &wgpu::Device,
+        count_data: usize,
+    ) -> anyhow::Result<Self> {
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader for World (for Cells of Grid)"),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Owned(Self::read_shader_file(
+                "./shaders/shader_cells.wgsl",
+            )?)),
+        });
+
+        let render_pipline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Render pipline layout for World"),
+                bind_group_layouts: &[],
+                immediate_size: 0,
+            });
+
+        let render_pipline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Pipline for World"),
+            layout: Some(&render_pipline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                compilation_options: Default::default(),
+                buffers: &[Self::create_vertex_buffer_layout_for_cells_vertices()],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw,
+                cull_mode: None,
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview_mask: None,
+            cache: None,
+        });
+
+        Ok(Self {
+            render_pipline,
             vertex_data: Vec::with_capacity(count_data),
+        })
+    }
+
+    fn create_vertex_buffer_layout_for_cells_vertices() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &[wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 0,
+                format: wgpu::VertexFormat::Float32x3,
+            }],
         }
+    }
+
+    fn read_shader_file<P>(path: P) -> std::io::Result<String>
+    where
+        P: AsRef<Path>,
+    {
+        std::fs::read_to_string(path)
     }
 
     fn create_vertices(x: f32, y: f32) -> [Vertex; 6] {
@@ -34,7 +113,6 @@ impl RenderWorld {
             Vertex::new([x, y, 0.0]),
             Vertex::new([x, y + SIZE_RENDER_CELLS, 0.0]),
             Vertex::new([x + SIZE_RENDER_CELLS, y + SIZE_RENDER_CELLS, 0.0]),
-            
             Vertex::new([x, y, 0.0]),
             Vertex::new([x + SIZE_RENDER_CELLS, y, 0.0]),
             Vertex::new([x + SIZE_RENDER_CELLS, y + SIZE_RENDER_CELLS, 0.0]),
@@ -50,4 +128,3 @@ impl RenderWorld {
         }
     }
 }
-
