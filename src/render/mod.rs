@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
 
 use crate::components::world::World;
 
@@ -21,7 +22,9 @@ impl Vertex {
 #[derive(Debug)]
 pub struct RenderWorld {
     vertex_data: Vec<Vertex>,
+    pub vertex_count: u32,
     pub render_pipline: wgpu::RenderPipeline,
+    vertex_buffer: Option<wgpu::Buffer>,
 }
 
 impl RenderWorld {
@@ -86,6 +89,8 @@ impl RenderWorld {
         Ok(Self {
             render_pipline,
             vertex_data: Vec::with_capacity(count_data),
+            vertex_count: 0,
+            vertex_buffer: None,
         })
     }
 
@@ -126,5 +131,25 @@ impl RenderWorld {
                 self.vertex_data.extend(Self::create_vertices(x, y));
             }
         }
+
+        self.vertex_count = self.vertex_data.len() as u32;
+    }
+
+    pub fn create_vertex_buffer(&mut self, device: &wgpu::Device) {
+        if self.vertex_data.is_empty() {
+            return;
+        }
+
+        self.vertex_buffer = Some(
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Buffer for Cells"),
+                contents: bytemuck::cast_slice(&self.vertex_data),
+                usage: wgpu::BufferUsages::VERTEX,
+            }),
+        );
+    }
+
+    pub fn get_vertex_buffer(&self) -> Option<&wgpu::Buffer> {
+        self.vertex_buffer.as_ref()
     }
 }

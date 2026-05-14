@@ -9,7 +9,7 @@ struct VertexOutput {
 @vertex
 fn vs_main(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    output.clip_position = vec4<f32>(input.position, 1.0);
+    output.clip_position = vec4<f32>(input.position / 200.0, 1.0);
     return output;
 }
 

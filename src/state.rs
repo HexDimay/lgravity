@@ -147,7 +147,16 @@ impl State {
                 multiview_mask: None,
             });
 
-            // render_pass.set_pipeline(&world_render_data.render_pipline);
+            render_pass.set_pipeline(&world_render_data.render_pipline);
+            render_pass.set_vertex_buffer(
+                0,
+                world_render_data
+                    .get_vertex_buffer()
+                    .as_ref()
+                    .unwrap()
+                    .slice(..),
+            );
+            render_pass.draw(0..world_render_data.vertex_count, 0..1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();

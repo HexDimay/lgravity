@@ -31,11 +31,23 @@ impl ApplicationHandler<State> for App {
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
-        self.world_render_data = Some(RenderWorld::new(
-            &self.state.as_ref().unwrap().config,
-            &self.state.as_ref().unwrap().device,
-            self.world.width() * self.world.height(),
-        ).unwrap());
+        self.world_render_data = Some(
+            RenderWorld::new(
+                &self.state.as_ref().unwrap().config,
+                &self.state.as_ref().unwrap().device,
+                self.world.width() * self.world.height(),
+            )
+            .unwrap(),
+        );
+        self.world_render_data
+            .as_mut()
+            .unwrap()
+            .init_data_world(&self.world);
+        self.world_render_data
+            .as_mut()
+            .unwrap()
+            .create_vertex_buffer(&self.state.as_ref().unwrap().device);
+        
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: State) {
