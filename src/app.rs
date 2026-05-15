@@ -28,6 +28,8 @@ impl App {
 
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        self.world.randomize_mass(0.0..1.0);
+
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
@@ -47,7 +49,6 @@ impl ApplicationHandler<State> for App {
             .as_mut()
             .unwrap()
             .create_vertex_buffer(&self.state.as_ref().unwrap().device);
-        
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: State) {

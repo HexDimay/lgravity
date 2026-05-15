@@ -11,11 +11,12 @@ pub const SIZE_RENDER_CELLS: f32 = 10.0;
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 pub struct Vertex {
     pub position: [f32; 3],
+    pub mass: f32,
 }
 
 impl Vertex {
-    pub fn new(position: [f32; 3]) -> Self {
-        Self { position }
+    pub fn new(position: [f32; 3], mass: f32) -> Self {
+        Self { position, mass }
     }
 }
 
@@ -98,11 +99,18 @@ impl RenderWorld {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 0,
-                format: wgpu::VertexFormat::Float32x3,
-            }],
+            attributes: &[
+                wgpu::VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: wgpu::VertexFormat::Float32x3,
+                },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
+                    shader_location: 1,
+                    format: wgpu::VertexFormat::Float32,
+                },
+            ],
         }
     }
 
@@ -113,22 +121,25 @@ impl RenderWorld {
         std::fs::read_to_string(path)
     }
 
-    fn create_vertices(x: f32, y: f32) -> [Vertex; 6] {
+    fn create_vertices(x: f32, y: f32, mass: f32) -> [Vertex; 6] {
         [
-            Vertex::new([x, y, 0.0]),
-            Vertex::new([x, y + SIZE_RENDER_CELLS, 0.0]),
-            Vertex::new([x + SIZE_RENDER_CELLS, y + SIZE_RENDER_CELLS, 0.0]),
-            Vertex::new([x, y, 0.0]),
-            Vertex::new([x + SIZE_RENDER_CELLS, y, 0.0]),
-            Vertex::new([x + SIZE_RENDER_CELLS, y + SIZE_RENDER_CELLS, 0.0]),
+            Vertex::new([x, y, 0.0], mass),
+            Vertex::new([x, y + SIZE_RENDER_CELLS, 0.0], mass),
+            Vertex::new([x + SIZE_RENDER_CELLS, y + SIZE_RENDER_CELLS, 0.0], mass),
+            Vertex::new([x, y, 0.0], mass),
+            Vertex::new([x + SIZE_RENDER_CELLS, y, 0.0], mass),
+            Vertex::new([x + SIZE_RENDER_CELLS, y + SIZE_RENDER_CELLS, 0.0], mass),
         ]
     }
 
     pub fn init_data_world(&mut self, world: &World) {
         for y in 0..world.height() {
             for x in 0..world.width() {
-                let (x, y) = (x as f32 * SIZE_RENDER_CELLS, y as f32 * SIZE_RENDER_CELLS);
-                self.vertex_data.extend(Self::create_vertices(x, y));
+                if let Some(cell) = world.get_grid().get_cell(x, y, world.width()) {
+                    let (x, y) = (x as f32 * SIZE_RENDER_CELLS, y as f32 * SIZE_RENDER_CELLS);
+                    self.vertex_data
+                        .extend(Self::create_vertices(x, y, cell.mass));
+                }
             }
         }
 
