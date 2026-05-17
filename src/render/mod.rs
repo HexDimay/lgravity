@@ -142,7 +142,7 @@ impl RenderWorld {
     pub fn init_data_world(&mut self, world: &World) {
         for y in 0..world.height() {
             for x in 0..world.width() {
-                if let Some(cell) = world.get_grid().get_cell(x, y, world.width()) {
+                if let Some(cell) = world.get_grid().get_cell(x, y) {
                     let (x, y) = (x as f32 * SIZE_RENDER_CELLS, y as f32 * SIZE_RENDER_CELLS);
                     self.vertex_data
                         .extend(Self::create_vertices(x, y, cell.mass));

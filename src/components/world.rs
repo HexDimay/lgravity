@@ -15,8 +15,8 @@ pub struct World {
 impl World {
     pub fn new(width: usize, height: usize) -> Self {
         let mut grid = Grid::new(width, height, DEAFULT_MASS_OF_CELL);
-        grid.update_cell_positions(width);
-        grid.build_neighbor_indexes(width);
+        grid.update_cell_positions();
+        grid.build_neighbor_indexes();
         Self {
             width,
             height,

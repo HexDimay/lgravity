@@ -27,23 +27,17 @@ pub fn update_world(world: &mut World) {
         for neighbor_index in n.iter() {
             let n_cell = &readonly_grid.cells[*neighbor_index];
             // передача массы
-            let matching = direction_match(&grid.cells[i].velocity, &n_cell.velocity);
+            let matching = direction_match(&readonly_grid.cells[i].velocity, &n_cell.velocity);
             if matching > 0.0 {
                 let other_density = n_cell.density;
-                // if other_density >= 1000.0
-                //     || other_density <= 0.0
-                //     || grid.cells[i].density <= 0.0
-                // {
-                //     continue;
-                // }
                 let cof = grid.cells[i].get_transfer_coefficient(other_density);
                 let mass_transfer =
                     grid.cells[i].get_amount_mass_transfer(other_density) * matching;
                 let v = grid.cells[i].velocity;
                 grid.cells[i].mass -= mass_transfer;
-                grid.cells[i].velocity -= v * cof * matching;
+                grid.cells[i].velocity -= v * cof;
                 grid.cells[*neighbor_index].mass += mass_transfer;
-                grid.cells[*neighbor_index].velocity += v * cof * matching;
+                grid.cells[*neighbor_index].velocity += v * cof;
             }
         }
     }
@@ -53,11 +47,11 @@ pub fn update_world(world: &mut World) {
 
 fn direction_match(a: &Vector2<f32>, b: &Vector2<f32>) -> f32 {
     // Нормализуем векторы (получаем единичные векторы)
-    // let a_normalized = a.normalize();
-    // let b_normalized = b.normalize();
+    let a_normalized = a.normalize();
+    let b_normalized = b.normalize();
 
     // Вычисляем скалярное произведение
-    let cos_angle = a.dot(&b);
+    let cos_angle = a_normalized.dot(&b_normalized);
 
     cos_angle
 }

@@ -2,16 +2,22 @@ use rand::{Rng, distributions::uniform::SampleRange};
 
 use crate::components::cell::Cell;
 
+pub const PADDING_VIEW: isize = 1;
+
 #[derive(Debug, Clone)]
 pub struct Grid {
+    width: usize,
+    height: usize,
     pub cells: Vec<Cell>,
 }
 
 impl Grid {
     /// Создаёт сетку, со сторонами `n*m`.
-    pub fn new(n: usize, m: usize, default_mass: f32) -> Self {
+    pub fn new(width: usize, height: usize, default_mass: f32) -> Self {
         Self {
-            cells: vec![Cell::new(default_mass); n * m],
+            width,
+            height,
+            cells: vec![Cell::new(default_mass); width * height],
         }
     }
 
@@ -25,57 +31,40 @@ impl Grid {
         }
     }
 
-    pub fn update_cell_positions(&mut self, width: usize) {
+    pub fn update_cell_positions(&mut self) {
+        let width = self.width;
         for (idx, cell) in self.cells.iter_mut().enumerate() {
             cell.position.x = (idx % width) as f32;
             cell.position.y = (idx / width) as f32;
         }
     }
 
-    pub fn build_neighbor_indexes(&mut self, width: usize) {
+    pub fn build_neighbor_indexes(&mut self) {
         let len = self.cells.len();
-        for (idx, cell) in self.cells.iter_mut().enumerate() {
-            let pos_cell = ((idx % width) as isize, (idx / width) as isize);
+        for i in 0..len {
+            let position = self.cells[i].position;
             let mut pos_neighbors = Vec::new();
-            for x in -1..=1 {
-                for y in -1..=1 {
+            for x in -PADDING_VIEW..=PADDING_VIEW {
+                for y in -PADDING_VIEW..=PADDING_VIEW {
                     if x != 0 && y != 0 {
-                        pos_neighbors.push((x, y));
+                        let (x, y) = (position.x as isize + x, position.y as isize + y);
+                        if self.valid_position(x, y) {
+                            pos_neighbors.push((x + (y * self.width as isize)) as usize);
+                        }
                     }
                 }
             }
-            let pos_neighbors = pos_neighbors
-                .iter()
-                .map(|(x, y)| (pos_cell.0 + x, pos_cell.1 + y))
-                .collect::<Vec<_>>();
 
-            let valid_neighbors = pos_neighbors
-                .iter()
-                .map(|(x, y)| {
-                    if Self::valid_position(len, *x, *y, width)
-                        && Self::valid_index(len, *x + (*y * width as isize))
-                    {
-                        return Some((*x + (*y * width as isize)) as usize);
-                    }
-
-                    None
-                })
-                .flatten()
-                .collect();
-
-            cell.neighbor_indexes = valid_neighbors;
+            self.cells[i].neighbor_indexes = pos_neighbors;
         }
     }
 
-    fn valid_index(len: usize, index: isize) -> bool {
-        index < len as isize && index >= 0
+    fn valid_position(&self, x: isize, y: isize) -> bool {
+        let (x, y) = (x as usize, y as usize);
+        x < self.width && y < self.height && x >= 0 && y >= 0
     }
 
-    fn valid_position(len: usize, x: isize, y: isize, width: usize) -> bool {
-        x < width as isize && y < len as isize / width as isize
-    }
-
-    pub fn get_cell(&self, x: usize, y: usize, width: usize) -> Option<&Cell> {
-        self.cells.get(x + y * width)
+    pub fn get_cell(&self, x: usize, y: usize) -> Option<&Cell> {
+        self.cells.get(x + y * self.width)
     }
 }

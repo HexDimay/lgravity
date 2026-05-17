@@ -36,7 +36,7 @@ impl App {
 
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        self.world.randomize_mass(1000.0..1000.1);
+        self.world.randomize_mass(10.0..1000.1);
 
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
