@@ -95,6 +95,14 @@ impl State {
         );
     }
 
+    pub fn update_world_vertex_buffer(&mut self, world_render_data: &RenderWorld) {
+        self.queue.write_buffer(
+            world_render_data.get_vertex_buffer().unwrap(),
+            0,
+            bytemuck::cast_slice(&world_render_data.vertex_data),
+        );
+    }
+
     pub fn update(&mut self) {}
 
     pub fn render(
@@ -136,7 +144,7 @@ impl State {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Render Encoder"),
             });
-
+        self.update_world_vertex_buffer(world_render_data);
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),

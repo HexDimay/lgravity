@@ -22,7 +22,7 @@ impl Vertex {
 
 #[derive(Debug)]
 pub struct RenderWorld {
-    vertex_data: Vec<Vertex>,
+    pub vertex_data: Vec<Vertex>,
     pub vertex_count: u32,
     pub render_pipline: wgpu::RenderPipeline,
     vertex_buffer: Option<wgpu::Buffer>,
@@ -153,6 +153,17 @@ impl RenderWorld {
         self.vertex_count = self.vertex_data.len() as u32;
     }
 
+    pub fn update_data(&mut self, world: &World) {
+        for idx_cell in 0..world.readonly_grid.cells.len() {
+            let new_mass = world.readonly_grid.cells[idx_cell].mass;
+            let offset = idx_cell * 6;
+            for i in 0..6 {
+                let idx_vertex = offset + i;
+                self.vertex_data[idx_vertex].mass = new_mass;
+            }
+        }
+    }
+
     pub fn create_vertex_buffer(&mut self, device: &wgpu::Device) {
         if self.vertex_data.is_empty() {
             return;
@@ -162,7 +173,7 @@ impl RenderWorld {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Buffer for Cells"),
                 contents: bytemuck::cast_slice(&self.vertex_data),
-                usage: wgpu::BufferUsages::VERTEX,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }),
         );
     }

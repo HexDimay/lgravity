@@ -43,12 +43,13 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
     let camera_pos = vec3<f32>(camera.position, 0.0);
     var output: VertexOutput;
-    output.clip_position = vec4<f32>((input.position + camera_pos.xyz) / camera.scale, 1.0) * ortho_matrix;
+    output.clip_position = vec4<f32>((input.position + camera_pos.xyz) / (camera.scale*10.0), 1.0) * ortho_matrix;
     output.mass = input.mass;
     return output;
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(input.mass, input.mass, input.mass, 1.0);
+    let mass = input.mass / 10000.0;
+    return vec4<f32>(mass, mass, mass, 1.0);
 }

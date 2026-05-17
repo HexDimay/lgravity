@@ -25,7 +25,7 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            world: World::new(10, 10),
+            world: World::new(100, 100),
             world_render_data: None,
             camera: Rc::new(RefCell::new(Camera::new(100.0, [0.0, 0.0], [0.0, 0.0]))),
             camera_render_data: None,
@@ -36,7 +36,7 @@ impl App {
 
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        self.world.randomize_mass(0.0..1.0);
+        self.world.randomize_mass(1000.0..1000.1);
 
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
@@ -102,6 +102,8 @@ impl ApplicationHandler<State> for App {
             }
             WindowEvent::RedrawRequested => {
                 state.update();
+                crate::logic::update_world(&mut self.world);
+                self.world_render_data.as_mut().unwrap().update_data(&self.world);
                 match state.render(
                     self.world_render_data.as_ref().unwrap(),
                     self.camera_render_data.as_ref().unwrap(),

@@ -47,10 +47,10 @@ impl Camera {
 
     pub fn handle_input_key(&mut self, code: KeyCode, is_pressed: bool) -> bool {
         match (code, is_pressed) {
-            (KeyCode::KeyW, true) => self.position[1] -= 1.0,
-            (KeyCode::KeyS, true) => self.position[1] += 1.0,
-            (KeyCode::KeyA, true) => self.position[0] += 1.0,
-            (KeyCode::KeyD, true) => self.position[0] -= 1.0,
+            (KeyCode::KeyW, true) => self.position[1] -= 10.0,
+            (KeyCode::KeyS, true) => self.position[1] += 10.0,
+            (KeyCode::KeyA, true) => self.position[0] += 10.0,
+            (KeyCode::KeyD, true) => self.position[0] -= 10.0,
 
             _ => {
                 return false;

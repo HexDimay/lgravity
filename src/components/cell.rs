@@ -6,17 +6,21 @@ pub const TRANSMISSION_RATIO_OF_VELOCITY: f32 = 10.0;
 
 #[derive(Debug, Clone)]
 pub struct Cell {
+    pub position: Vector2<f32>,
     pub mass: f32,
     pub velocity: Vector2<f32>,
     pub density: f32,
+    pub neighbor_indexes: Vec<usize>,
 }
 
 impl Cell {
     pub fn new(mass: f32) -> Self {
         Self {
+            position: Vector2::new(0.0, 0.0),
             mass,
             velocity: Vector2::new(0.0, 0.0),
             density: mass / CELL_SIZE,
+            neighbor_indexes: Vec::with_capacity(8),
         }
     }
 

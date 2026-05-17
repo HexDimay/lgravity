@@ -8,15 +8,20 @@ pub const DEAFULT_MASS_OF_CELL: f32 = 1.0;
 pub struct World {
     width: usize,
     height: usize,
-    grid: Grid,
+    pub readonly_grid: Grid,
+    pub grid: Grid,
 }
 
 impl World {
     pub fn new(width: usize, height: usize) -> Self {
+        let mut grid = Grid::new(width, height, DEAFULT_MASS_OF_CELL);
+        grid.update_cell_positions(width);
+        grid.build_neighbor_indexes(width);
         Self {
             width,
             height,
-            grid: Grid::new(width, height, DEAFULT_MASS_OF_CELL),
+            readonly_grid: grid.clone(),
+            grid: grid,
         }
     }
 
@@ -25,6 +30,7 @@ impl World {
         R: SampleRange<f32> + Clone,
     {
         self.grid.randomize_mass(range);
+        self.readonly_grid = self.grid.clone();
     }
 
     pub fn get_grid(&self) -> &Grid {
