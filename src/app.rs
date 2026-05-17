@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use winit::{
     application::ApplicationHandler,
-    event::{KeyEvent, WindowEvent},
+    event::{KeyEvent, MouseScrollDelta, WindowEvent},
     event_loop::ActiveEventLoop,
     keyboard::PhysicalKey,
     window::Window,
@@ -27,7 +27,7 @@ impl App {
         Self {
             world: World::new(10, 10),
             world_render_data: None,
-            camera: Rc::new(RefCell::new(Camera::new(1.0, [0.0, 0.0], [0.0, 0.0]))),
+            camera: Rc::new(RefCell::new(Camera::new(100.0, [0.0, 0.0], [0.0, 0.0]))),
             camera_render_data: None,
             state: None,
         }
@@ -121,7 +121,25 @@ impl ApplicationHandler<State> for App {
                         ..
                     },
                 ..
-            } => state.handle_key(event_loop, code, key_state.is_pressed()),
+            } => {
+                state.handle_key(event_loop, code, key_state.is_pressed());
+                if self.camera.borrow_mut().handle_input_key(code, key_state.is_pressed()) {
+                    state.update_camera_buffer(self.camera_render_data.as_ref().unwrap());
+                }
+                
+                log::info!("Camera pos: {:?}", self.camera.borrow().position());
+            },
+            WindowEvent::MouseWheel { delta, .. } => {
+                if let MouseScrollDelta::LineDelta(y0, y1) = delta {
+                    self.camera.borrow_mut().scale += y0 - y1;
+                    if self.camera.borrow_mut().scale < 0.005 {
+                        self.camera.borrow_mut().scale = 0.005;
+                    }
+                    log::info!("Camera scale: {:?}", self.camera.borrow().scale);
+                    
+                    state.update_camera_buffer(self.camera_render_data.as_ref().unwrap());
+                }
+            },
             _ => {}
         }
     }

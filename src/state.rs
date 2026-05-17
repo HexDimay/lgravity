@@ -80,15 +80,19 @@ impl State {
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
-            self.queue.write_buffer(
-                camera_render_data.uniform_buffer.as_ref().unwrap(),
-                0,
-                bytemuck::bytes_of(&*camera_render_data.camera.borrow()),
-            );
+            self.update_camera_buffer(camera_render_data);
             return;
         }
 
         self.is_surface_configured = false;
+    }
+
+    pub fn update_camera_buffer(&mut self, camera_render_data: &RenderCamera) {
+        self.queue.write_buffer(
+            camera_render_data.uniform_buffer.as_ref().unwrap(),
+            0,
+            bytemuck::bytes_of(&*camera_render_data.camera.borrow()),
+        );
     }
 
     pub fn update(&mut self) {}
