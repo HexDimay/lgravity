@@ -1,9 +1,9 @@
-use std::path::Path;
+use std::{cell::RefCell, path::Path, rc::Rc};
 
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use crate::components::world::World;
+use crate::components::{camera::Camera, world::World};
 
 pub const SIZE_RENDER_CELLS: f32 = 10.0;
 
@@ -30,10 +30,11 @@ pub struct RenderWorld {
 
 impl RenderWorld {
     /// `count_data` это есть длина нашей сетки `n*m`.
-    pub fn new(
+    pub fn new<'a>(
         config: &wgpu::SurfaceConfiguration,
         device: &wgpu::Device,
         count_data: usize,
+        camera_render_data: &'a RenderCamera,
     ) -> anyhow::Result<Self> {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader for World (for Cells of Grid)"),
@@ -45,7 +46,13 @@ impl RenderWorld {
         let render_pipline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render pipline layout for World"),
-                bind_group_layouts: &[],
+                bind_group_layouts: &[Some(
+                    &camera_render_data
+                        .bind_group_layout
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
+                )],
                 immediate_size: 0,
             });
 
@@ -162,5 +169,68 @@ impl RenderWorld {
 
     pub fn get_vertex_buffer(&self) -> Option<&wgpu::Buffer> {
         self.vertex_buffer.as_ref()
+    }
+}
+
+pub struct RenderCamera {
+    pub camera: Rc<RefCell<Camera>>,
+    pub uniform_buffer: Option<wgpu::Buffer>,
+    bind_group_layout: Option<wgpu::BindGroupLayout>,
+    pub bind_group: Option<wgpu::BindGroup>,
+}
+
+impl RenderCamera {
+    pub fn new(camera: Rc<RefCell<Camera>>) -> Self {
+        Self {
+            camera,
+            uniform_buffer: None,
+            bind_group_layout: None,
+            bind_group: None,
+        }
+    }
+
+    pub fn create_uniform_buffer(mut self, device: &wgpu::Device) -> Self {
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Camera Uniform Buffer"),
+            contents: bytemuck::bytes_of(&*self.camera.borrow()), // Преобразуем структуру в байты
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            // Флаг COPY_DST позволяет нам обновлять буфер в будущем
+        });
+
+        self.uniform_buffer = Some(uniform_buffer);
+        self
+    }
+
+    pub fn create_bind_group_layout(mut self, device: &wgpu::Device) -> Self {
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+            label: Some("Camera Bind Group Layout"),
+        });
+
+        self.bind_group_layout = Some(bind_group_layout);
+        self
+    }
+
+    pub fn create_bind_group(mut self, device: &wgpu::Device) -> Self {
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: self.bind_group_layout.as_ref().unwrap(),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: self.uniform_buffer.as_ref().unwrap().as_entire_binding(),
+            }],
+            label: Some("Camera Bind Group"),
+        });
+
+        self.bind_group = Some(bind_group);
+        self
     }
 }

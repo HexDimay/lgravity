@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use winit::{
     application::ApplicationHandler,
@@ -8,11 +8,17 @@ use winit::{
     window::Window,
 };
 
-use crate::{components::world::World, render::RenderWorld, state::State};
+use crate::{
+    components::{camera::Camera, world::World},
+    render::{RenderCamera, RenderWorld},
+    state::State,
+};
 
 pub struct App {
     world: World,
     world_render_data: Option<RenderWorld>,
+    camera: Rc<RefCell<Camera>>,
+    camera_render_data: Option<RenderCamera>,
     pub state: Option<State>,
 }
 
@@ -21,6 +27,8 @@ impl App {
         Self {
             world: World::new(10, 10),
             world_render_data: None,
+            camera: Rc::new(RefCell::new(Camera::new(1.0, [0.0, 0.0], [0.0, 0.0]))),
+            camera_render_data: None,
             state: None,
         }
     }
@@ -32,12 +40,26 @@ impl ApplicationHandler<State> for App {
 
         let window_attributes = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
+        let size = window.inner_size();
         self.state = Some(pollster::block_on(State::new(window)).unwrap());
+        let device = &self.state.as_ref().unwrap().device;
+
+        self.camera
+            .borrow_mut()
+            .set_screen_size([size.width as f32, size.height as f32]);
+        self.camera_render_data = Some(
+            RenderCamera::new(self.camera.clone())
+                .create_uniform_buffer(device)
+                .create_bind_group_layout(device)
+                .create_bind_group(device),
+        );
+
         self.world_render_data = Some(
             RenderWorld::new(
                 &self.state.as_ref().unwrap().config,
-                &self.state.as_ref().unwrap().device,
+                device,
                 self.world.width() * self.world.height(),
+                self.camera_render_data.as_ref().unwrap(),
             )
             .unwrap(),
         );
@@ -48,7 +70,7 @@ impl ApplicationHandler<State> for App {
         self.world_render_data
             .as_mut()
             .unwrap()
-            .create_vertex_buffer(&self.state.as_ref().unwrap().device);
+            .create_vertex_buffer(device);
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: State) {
@@ -68,10 +90,22 @@ impl ApplicationHandler<State> for App {
 
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::Resized(size) => state.resize(size.width, size.height),
+            WindowEvent::Resized(size) => {
+                self.camera
+                    .borrow_mut()
+                    .set_screen_size([size.width as f32, size.height as f32]);
+                state.resize(
+                    size.width,
+                    size.height,
+                    self.camera_render_data.as_ref().unwrap(),
+                );
+            }
             WindowEvent::RedrawRequested => {
                 state.update();
-                match state.render(self.world_render_data.as_ref().unwrap()) {
+                match state.render(
+                    self.world_render_data.as_ref().unwrap(),
+                    self.camera_render_data.as_ref().unwrap(),
+                ) {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("{e}");

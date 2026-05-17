@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use winit::{event_loop::ActiveEventLoop, keyboard::KeyCode, window::Window};
 
-use crate::render::RenderWorld;
+use crate::render::{RenderCamera, RenderWorld};
 
 pub struct State {
     pub(crate) surface: wgpu::Surface<'static>,
@@ -74,12 +74,17 @@ impl State {
         })
     }
 
-    pub fn resize(&mut self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32, camera_render_data: &RenderCamera) {
         if width > 0 && height > 0 {
             self.config.width = width;
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
+            self.queue.write_buffer(
+                camera_render_data.uniform_buffer.as_ref().unwrap(),
+                0,
+                bytemuck::bytes_of(&*camera_render_data.camera.borrow()),
+            );
             return;
         }
 
@@ -88,7 +93,11 @@ impl State {
 
     pub fn update(&mut self) {}
 
-    pub fn render(&mut self, world_render_data: &RenderWorld) -> anyhow::Result<()> {
+    pub fn render(
+        &mut self,
+        world_render_data: &RenderWorld,
+        camera_render_data: &RenderCamera,
+    ) -> anyhow::Result<()> {
         self.window.request_redraw();
 
         if !self.is_surface_configured {
@@ -148,6 +157,7 @@ impl State {
             });
 
             render_pass.set_pipeline(&world_render_data.render_pipline);
+            render_pass.set_bind_group(0, camera_render_data.bind_group.as_ref().unwrap(), &[]);
             render_pass.set_vertex_buffer(
                 0,
                 world_render_data
